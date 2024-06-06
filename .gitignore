@@ -160,3 +160,8 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+s3/data/.minio.sys/buckets
+s3/data/.minio.sys/config
+s3/data/.minio.sys/pool.bin
+s3/data/.minio.sys/tmp
+s3/data/.minio.sys/format.json
