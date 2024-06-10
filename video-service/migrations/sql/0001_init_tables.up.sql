@@ -1,4 +1,4 @@
-CREATE TABLE videos (
+CREATE TABLE IF NOT EXISTS videos (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     video_id VARCHAR(255) NOT NULL,
@@ -6,14 +6,16 @@ CREATE TABLE videos (
     size INT NOT NULL,
     is_processed BOOLEAN NOT NULL,
     s3_url VARCHAR(255) NOT NULL,
+    md5 VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );
 
-CREATE TABLE index_videos (
+CREATE TABLE IF NOT EXISTS index_videos (
     id SERIAL PRIMARY KEY,
     uuid VARCHAR(255) NOT NULL,
     s3_url VARCHAR(255) NOT NULL,
+    md5 VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );

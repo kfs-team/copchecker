@@ -1,6 +1,6 @@
 .PHONY: build
 build:
-	go build -o bin/upload-service cmd/service/main.go
+	go build -o bin/video-service cmd/service/main.go
 
 .PHONY: run
 	@build
