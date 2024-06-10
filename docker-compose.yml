@@ -7,7 +7,6 @@ services:
     environment:
       - MINIO_ROOT_USER=ROOTUSERNAME
       - MINIO_ROOT_PASSWORD=ROOTPASSWORD
-      - MINIO_DEFAULT_BUCKETS=mybucket
     networks:
       - minionetwork
     volumes:
@@ -18,6 +17,22 @@ services:
       timeout: 5s
       retries: 5
     command: server /data --console-address ":9001"
+
+  minio-setup:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    networks:
+     - minionetwork
+    entrypoint: >
+      /bin/sh -c "
+        until (/usr/bin/mc alias set myminio http://minio:9000 ROOTUSERNAME ROOTPASSWORD)
+        do echo 'waiting for minio...'; sleep 3; done;
+        /usr/bin/mc ls myminio/milvus-vdb || /usr/bin/mc mb myminio/milvus-vdb;
+        /usr/bin/mc ls myminio/another-bucket || /usr/bin/mc mb myminio/another-bucket;
+        /usr/bin/mc ls myminio/video-service-bucket || /usr/bin/mc mb myminio/video-service-bucket;
+      "
+
   postgres:
     image: postgres:12
     ports:
@@ -35,27 +50,29 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.3.1
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
 
-  kafka:
-    image: confluentinc/cp-kafka:7.3.1
+  postgres-setup:
+    build: 
+      context: ./video-service/migrations
+      dockerfile: Dockerfile
     depends_on:
-      - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_HOST://kafka:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      postgres:
+        condition: service_healthy
+    networks:
+      - minionetwork
+
+  video-service:
+    build: 
+      context: ./video-service
     ports:
-      - "9092:9092"
+      - "9999:9999"
+    depends_on:
+      - minio
+      - postgres
+      - minio-setup
+      - postgres-setup
+    networks:
+      - minionetwork
 
 networks:
   minionetwork:
@@ -65,8 +82,4 @@ volumes:
   minio_data:
     driver: local
   postgres_data:
-    driver: local
-  kafka_data:
-    driver: local
-  zookeeper_data:
     driver: local
