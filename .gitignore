@@ -165,3 +165,9 @@ s3/data/.minio.sys/config
 s3/data/.minio.sys/pool.bin
 s3/data/.minio.sys/tmp
 s3/data/.minio.sys/format.json
+video-examples/.DS_Store
+video-examples
+video-service/bin
+video-service/vendor
+video-service/go.sum
+.DS_Store
