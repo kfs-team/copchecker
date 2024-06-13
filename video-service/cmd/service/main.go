@@ -27,11 +27,13 @@ func main() {
 	dbConnectionString := "postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable"
 	kafkaHost := "kafka:9092"
 	indexTopic := "index-input"
-	processingTopic = "processing-input"
-	indexResultTopic = "index-result"
-	processingResult = "processing-result"
-	topics := []string{"index-add", "processing-video", "processing-video-result"}
-	kafkaProducer := internal.KafkaProducer([]string{kafkaHost}, indexTopic)
+	processingTopic := "processing-input"
+	// indexResultTopic := "index-result"
+	// processingResult := "processing-result"
+	kafkaIndexProducer := internal.KafkaProducer([]string{kafkaHost}, indexTopic)
+	kafkaProcessingProducer := internal.KafkaProducer([]string{kafkaHost}, processingTopic)
+	// kafkaIndexConsumer := internal.KafkaConsumer([]string{kafkaHost}, indexResultTopic)
+	// kafkaProcessingConsumer := internal.KafkaConsumer([]string{kafkaHost}, processingResult)
 
 	minioClient, err := minio.New(minioHost, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
@@ -46,7 +48,7 @@ func main() {
 	}
 	defer dbClient.Close()
 	db := internal.NewPostgres(dbClient)
-	uploadVideoHandler := handlers.NewUploadVideoHandler(db, minioClient, logger)
+	uploadVideoHandler := handlers.NewUploadVideoHandler(db, minioClient, logger, kafkaIndexProducer, kafkaProcessingProducer)
 	getVideoHandler := handlers.NewGetVideoHandler(db, minioClient, logger)
 	router := mux.NewRouter()
 	router.HandleFunc("/video", uploadVideoHandler.Handle).Methods("POST")

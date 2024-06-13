@@ -3,12 +3,13 @@ package internal
 import "github.com/segmentio/kafka-go"
 
 func KafkaProducer(brokers []string, topic string) *kafka.Writer {
-	writer := kafka.Writer{
-		Addr:     kafka.TCP(brokers...), // Список серверов
-		Topic:    topic,                 // Название топика
+	writer := kafka.NewWriter(kafka.WriterConfig{
+		Brokers:  brokers,
+		Topic:    topic, // Название топика
 		Balancer: &kafka.LeastBytes{},
-	}
-	return &writer
+	},
+	)
+	return writer
 }
 
 func KafkaConsumer(brokers []string, topic string) *kafka.Reader {
