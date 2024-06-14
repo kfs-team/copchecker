@@ -12,10 +12,11 @@ fi
 VIDEO_PATH=$1
 VIDEO_NAME=$(basename $VIDEO_PATH)
 INDEX=$2 || false
+PORT=1111
 
 
 
-curl -X POST "http://localhost:9999/video" \
+curl -X POST "http://localhost:${PORT}/video" \
   -F "video=@${VIDEO_PATH}" \
   -F "name=${VIDEO_NAME}" \
   -F "index=${INDEX}"

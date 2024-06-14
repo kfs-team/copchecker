@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
+	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,13 +26,21 @@ type Response struct {
 }
 
 type UploadVideoHandler struct {
-	db          *internal.Postgres
-	logger      *logrus.Logger
-	minioClient *minio.Client
+	db                 *internal.Postgres
+	logger             *logrus.Logger
+	minioClient        *minio.Client
+	indexProducer      *kafka.Writer
+	processingProducer *kafka.Writer
 }
 
-func NewUploadVideoHandler(db *internal.Postgres, minioClient *minio.Client, logger *logrus.Logger) *UploadVideoHandler {
-	return &UploadVideoHandler{db: db, logger: logger, minioClient: minioClient}
+type KafkaMessage struct {
+	UUID  string `json:"uuid"`
+	S3URL string `json:"s3_url"`
+	MD5   string `json:"md5"`
+}
+
+func NewUploadVideoHandler(db *internal.Postgres, minioClient *minio.Client, logger *logrus.Logger, indexProducer *kafka.Writer, processingProducer *kafka.Writer) *UploadVideoHandler {
+	return &UploadVideoHandler{db: db, logger: logger, minioClient: minioClient, indexProducer: indexProducer, processingProducer: processingProducer}
 }
 
 func isVideoExist(db *internal.Postgres, md5Hash string) (bool, error) {
@@ -41,6 +50,18 @@ func isVideoExist(db *internal.Postgres, md5Hash string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func writeKafkaMessage(producer *kafka.Writer, kafkaMessage *KafkaMessage) error {
+	kafkaMessageBytes, _ := json.Marshal(kafkaMessage)
+
+	producer.WriteMessages(context.Background(), []kafka.Message{
+		kafka.Message{
+			Value: kafkaMessageBytes,
+		},
+	}...,
+	)
+	return nil
 }
 
 func (h *UploadVideoHandler) Handle(w http.ResponseWriter, r *http.Request) {
@@ -105,6 +126,17 @@ func (h *UploadVideoHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		kafkaMessage := &KafkaMessage{
+			UUID:  video.VideoID,
+			S3URL: s3URL,
+			MD5:   md5Hash,
+		}
+		err = writeKafkaMessage(h.indexProducer, kafkaMessage)
+		if err != nil {
+			h.logger.Error(err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
 		response := &Response{
 			UUID: video.VideoID,
 		}
@@ -125,6 +157,13 @@ func (h *UploadVideoHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unable to insert index video", http.StatusInternalServerError)
 		return
 	}
+
+	kafkaMessage := &KafkaMessage{
+		UUID:  indexVideo.UUID,
+		S3URL: s3URL,
+		MD5:   md5Hash,
+	}
+	err = writeKafkaMessage(h.indexProducer, kafkaMessage)
 	fmt.Fprintf(w, "File uploaded successfully")
 	w.WriteHeader(http.StatusOK)
 }

@@ -10,6 +10,15 @@ type Postgres struct {
 	db *sqlx.DB
 }
 
+type ProcessingResult struct {
+	VideoId      string     `json:"video_id"`
+	ProcessingId int        `json:"processing_id"`
+	Intervals    []Interval `json:"intervals"`
+	Valid        bool       `json:"valid"`
+	Start        time.Time  `json:"start"`
+	End          time.Time  `json:"end"`
+}
+
 type Video struct {
 	Name        string    `db:"name" json:"name"`
 	VideoID     string    `db:"video_id" json:"video_id"`
@@ -67,6 +76,38 @@ func (p *Postgres) GetVideo(id string, video *Video) error {
 
 func (p *Postgres) InsertIndexVideo(video *IndexVideo) error {
 	_, err := p.db.NamedExec("INSERT INTO index_videos (uuid, s3_url, created_at, updated_at) VALUES (:uuid, :s3_url, :created_at, :updated_at)", video)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Postgres) InsertProcessing(processing *ProcessingResultMessage) error {
+	_, err := p.db.NamedExec("INSERT INTO processing (video_id, intervals, valid, start, end) VALUES (:video_id, :intervals, :valid, :start, :end)", processing)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Postgres) GetLastProcessingByVideoId(videoId string, processing *ProcessingResult) error {
+	err := p.db.Get(processing, "SELECT video_id, processing_id, intervals, valid, start, end FROM processing WHERE video_id = $1 ORDER BY start DESC LIMIT 1", videoId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Postgres) UpdateIndexVideoByVideoId(videoId string) error {
+	_, err := p.db.NamedExec("UPDATE index_videos SET updated_at = NOW(), added = true WHERE video_id = $1", videoId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Postgres) UpdateVideoByVideoId(videoId string) error {
+	_, err := p.db.NamedExec("UPDATE videos SET updated_at = NOW(), is_processed = true WHERE video_id = $1", videoId)
 	if err != nil {
 		return err
 	}

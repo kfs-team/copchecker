@@ -17,6 +17,6 @@ WORKDIR /root/
 
 COPY --from=builder /app/bin/video-service .
 
-EXPOSE 9999
+EXPOSE 1111
 
 CMD ["./video-service"]
