@@ -2,18 +2,19 @@ import numpy as np
 import torch
 from PIL import Image
 from moviepy.editor import VideoFileClip
-from transformers import AutoModel
+from transformers import CLIPModel, CLIPProcessor
 
-from .common import Encoder
+from .encoder import Encoder
 
 
 class ImageJCLIPEncoder(Encoder):
-    def __init__(self):
-        self.image_embedder = AutoModel.from_pretrained(
-            'jinaai/jina-clip-v1',
-            trust_remote_code=True
-        ).to('cuda')
+    def __init__(self, device):
+        super().__init__(device)
 
+        self.model = CLIPModel.from_pretrained('openai/clip-vit-base-patch32').eval().to(torch.bfloat16).to(self.device)
+        self.processor = CLIPProcessor.from_pretrained('openai/clip-vit-base-patch32')
+
+    @torch.inference_mode()
     def get_embeddings(
         self,
         video: str,
@@ -34,12 +35,22 @@ class ImageJCLIPEncoder(Encoder):
             segment_end = min(segment_start + segment_len, video_duration)
 
             frames = [
-                Image.fromarray(video.get_frame(t)).convert('L')
+                video.get_frame(t)  # todo grayscale
                 for t in range(segment_start, int(segment_end), segment_step)
             ]
-            segment_embeddings = self.image_embedder.encode_image(frames)
-            if len(segment_embeddings):
-                average_embedding = np.mean(segment_embeddings, axis=0)
+            inputs = self.processor(
+                images=frames,  # list[np.ndarray] | np.ndarray
+                return_tensors="pt",
+            ).to(torch.bfloat16).to(self.device)
+            outputs = self.model.get_image_features(**inputs).cpu().numpy()
+
+            if len(outputs):
+                average_embedding = np.mean(outputs, axis=0)
+                average_embedding /= np.linalg.norm(average_embedding, ord=2)
                 embeddings.append(average_embedding)
 
         return np.array(embeddings)
+
+    @property
+    def emb_size(self) -> int:
+        return 512

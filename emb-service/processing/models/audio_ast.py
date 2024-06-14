@@ -6,18 +6,20 @@ import torchaudio
 
 from transformers import ASTForAudioClassification, ASTFeatureExtractor
 
-from .common import Encoder
+from .encoder import Encoder
 
 
 class AudioASTEncoder(Encoder):
-    BATCH_SIZE = 16
+    BATCH_SIZE = 64
 
-    def __init__(self):
+    def __init__(self, device):
+        super().__init__(device)
+
         self.model = ASTForAudioClassification.from_pretrained(
             "MIT/ast-finetuned-audioset-10-10-0.4593",
-            torch_dtype=torch.float16,
+            torch_dtype=torch.bfloat16,
             output_hidden_states=True
-        ).to('cuda')
+        ).to(self.device)
         self.feature_extractor = ASTFeatureExtractor.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
 
     @torch.inference_mode()
@@ -46,7 +48,7 @@ class AudioASTEncoder(Encoder):
                     return_tensors="pt"
                 )['input_values']
                 for elem in batch
-            ]).to(torch.float16).to('cuda')
+            ]).to(torch.bfloat16).to(self.device)
             outputs = self.model(input_values=inputs)
             cls_embeddings = outputs.hidden_states[-1][:, 0, :]
             embs.append(cls_embeddings.cpu().numpy())
@@ -65,3 +67,7 @@ class AudioASTEncoder(Encoder):
             waveform = torch.mean(waveform, dim=0, keepdim=True)
 
         return waveform, sample_rate
+
+    @property
+    def emb_size(self) -> int:
+        return 768
