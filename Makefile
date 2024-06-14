@@ -1,5 +1,11 @@
-make run:
+.PHONY: run
+run:
 	docker-compose up -d
 
-make stop:
+.PHONY: stop
+stop:
 	docker-compose stop
+
+.PHONY: run-rebuild
+run-rebuild:
+	docker-compose up -d --build

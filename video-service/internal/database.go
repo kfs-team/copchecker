@@ -1,0 +1,115 @@
+package internal
+
+import (
+	"time"
+
+	"github.com/jmoiron/sqlx"
+)
+
+type Postgres struct {
+	db *sqlx.DB
+}
+
+type ProcessingResult struct {
+	VideoId      string     `json:"video_id"`
+	ProcessingId int        `json:"processing_id"`
+	Intervals    []Interval `json:"intervals"`
+	Valid        bool       `json:"valid"`
+	Start        time.Time  `json:"start"`
+	End          time.Time  `json:"end"`
+}
+
+type Video struct {
+	Name        string    `db:"name" json:"name"`
+	VideoID     string    `db:"video_id" json:"video_id"`
+	Duration    int       `db:"duration,omitempty" json:"duration"`
+	Size        int       `db:"size,omitempty" json:"size"`
+	IsProcessed bool      `db:"is_processed,omitempty" json:"is_processed"`
+	S3URL       string    `db:"s3_url,omitempty" json:"s3_url"`
+	MD5         string    `db:"md5,omitempty" json:"md5"`
+	CreatedAt   time.Time `db:"created_at,omitempty" json:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at,omitempty" json:"updated_at"`
+}
+
+type IndexVideo struct {
+	UUID      string    `db:"uuid"`
+	S3URL     string    `db:"s3_url"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+func NewPostgres(db *sqlx.DB) *Postgres {
+	return &Postgres{db: db}
+}
+
+func (p *Postgres) InsertVideo(video *Video) error {
+	_, err := p.db.NamedExec("INSERT INTO videos (name, video_id, duration, size, is_processed, s3_url, md5, created_at, updated_at) VALUES (:name, :video_id, :duration, :size, :is_processed, :s3_url, :md5, :created_at, :updated_at)", video)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Postgres) GetVideoByName(name string, video *Video) error {
+	err := p.db.Get(video, "SELECT name, video_id, duration, size, is_processed, s3_url, md5, created_at, updated_at FROM videos WHERE name = $1", name)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Postgres) GetVideoByMD5(md5 string, video *Video) error {
+	err := p.db.Get(video, "SELECT name, video_id, duration, size, is_processed, s3_url, md5, created_at, updated_at FROM videos WHERE md5 = $1", md5)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Postgres) GetVideo(id string, video *Video) error {
+	err := p.db.Get(video, "SELECT name, video_id, duration, size, is_processed, s3_url, md5, created_at, updated_at FROM videos WHERE video_id = $1", id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Postgres) InsertIndexVideo(video *IndexVideo) error {
+	_, err := p.db.NamedExec("INSERT INTO index_videos (uuid, s3_url, created_at, updated_at) VALUES (:uuid, :s3_url, :created_at, :updated_at)", video)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Postgres) InsertProcessing(processing *ProcessingResultMessage) error {
+	_, err := p.db.NamedExec("INSERT INTO processing (video_id, intervals, valid, start, end) VALUES (:video_id, :intervals, :valid, :start, :end)", processing)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Postgres) GetLastProcessingByVideoId(videoId string, processing *ProcessingResult) error {
+	err := p.db.Get(processing, "SELECT video_id, processing_id, intervals, valid, start, end FROM processing WHERE video_id = $1 ORDER BY start DESC LIMIT 1", videoId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Postgres) UpdateIndexVideoByVideoId(videoId string) error {
+	_, err := p.db.NamedExec("UPDATE index_videos SET updated_at = NOW(), added = true WHERE video_id = $1", videoId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Postgres) UpdateVideoByVideoId(videoId string) error {
+	_, err := p.db.NamedExec("UPDATE videos SET updated_at = NOW(), is_processed = true WHERE video_id = $1", videoId)
+	if err != nil {
+		return err
+	}
+	return nil
+}

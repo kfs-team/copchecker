@@ -28,8 +28,8 @@ services:
       /bin/sh -c "
         until (/usr/bin/mc alias set myminio http://minio:9000 ROOTUSERNAME ROOTPASSWORD)
         do echo 'waiting for minio...'; sleep 3; done;
-        /usr/bin/mc mb myminio/milvus-vdb;
-        /usr/bin/mc mb myminio/another-bucket;
+        /usr/bin/mc ls myminio/milvus-vdb || /usr/bin/mc mb myminio/milvus-vdb;
+        /usr/bin/mc ls myminio/video-service-bucket || /usr/bin/mc mb myminio/video-service-bucket;
       "
 
   postgres:
@@ -49,27 +49,72 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.3.1
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+
+  postgres-setup:
+    build: 
+      context: ./video-service/migrations
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - minionetwork
+
+
+  zoo:
+    image: confluentinc/cp-zookeeper:7.3.2
+    hostname: zoo
+    container_name: zoo
+    networks:
+      - minionetwork
     ports:
-      - "2181:2181"
+      - "2222:2222"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2222
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_SERVERS: zoo:2888:3888
 
   kafka:
-    image: confluentinc/cp-kafka:7.3.1
-    depends_on:
-      - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_HOST://kafka:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    image: confluentinc/cp-kafka:7.3.2
+    hostname: kafka
+    container_name: kafka
+    networks:
+      - minionetwork
     ports:
       - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://${DOCKER_HOST_IP:-127.0.0.1}:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_ZOOKEEPER_CONNECT: "zoo:2222"
+      KAFKA_BROKER_ID: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG4J_LOGGERS: "kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "true"
+    depends_on:
+      - zoo
+    healthcheck:
+      test: ["CMD", "docker exec zoo", "bin/bash", "-c", "echo ruok | nc -w 2 zoo 2181 | grep imok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+  video-service:
+    build: 
+      context: ./video-service
+    ports:
+      - "1111:1111"
+    depends_on:
+      - minio-setup
+      - postgres-setup
+      - kafka
+    networks:
+      - minionetwork
 
   milvus-etcd:
     container_name: milvus-etcd
@@ -129,8 +174,4 @@ volumes:
   minio_data:
     driver: local
   postgres_data:
-    driver: local
-  kafka_data:
-    driver: local
-  zookeeper_data:
     driver: local
