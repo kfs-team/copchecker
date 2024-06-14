@@ -39,8 +39,8 @@ type KafkaMessage struct {
 	MD5   string `json:"md5"`
 }
 
-func NewUploadVideoHandler(db *internal.Postgres, minioClient *minio.Client, logger *logrus.Logger, producer *kafka.Writer, consumer *kafka.Writer) *UploadVideoHandler {
-	return &UploadVideoHandler{db: db, logger: logger, minioClient: minioClient, indexProducer: producer, processingProducer: consumer}
+func NewUploadVideoHandler(db *internal.Postgres, minioClient *minio.Client, logger *logrus.Logger, indexProducer *kafka.Writer, processingProducer *kafka.Writer) *UploadVideoHandler {
+	return &UploadVideoHandler{db: db, logger: logger, minioClient: minioClient, indexProducer: indexProducer, processingProducer: processingProducer}
 }
 
 func isVideoExist(db *internal.Postgres, md5Hash string) (bool, error) {
@@ -57,7 +57,6 @@ func writeKafkaMessage(producer *kafka.Writer, kafkaMessage *KafkaMessage) error
 
 	producer.WriteMessages(context.Background(), []kafka.Message{
 		kafka.Message{
-			Key:   []byte(video.VideoID),
 			Value: kafkaMessageBytes,
 		},
 	}...,

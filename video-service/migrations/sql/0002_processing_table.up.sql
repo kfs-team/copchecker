@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS processing (
+    processing_id SERIAL PRIMARY KEY,
+    video_id VARCHAR(255) NOT NULL,
+    intervals jsonb NOT NULL,
+    valid BOOLEAN NOT NULL DEFAULT TRUE,
+    start TIMESTAMP NOT NULL,
+    "end" TIMESTAMP NOT NULL
+);
+
+ALTER TABLE processing ADD COLUMN added BOOLEAN NOT NULL DEFAULT FALSE;
