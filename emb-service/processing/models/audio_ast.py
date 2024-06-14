@@ -17,7 +17,6 @@ class AudioASTEncoder(Encoder):
 
         self.model = ASTForAudioClassification.from_pretrained(
             "MIT/ast-finetuned-audioset-10-10-0.4593",
-            torch_dtype=torch.float16,
             output_hidden_states=True
         ).to(self.device)
         self.feature_extractor = ASTFeatureExtractor.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
@@ -48,7 +47,7 @@ class AudioASTEncoder(Encoder):
                     return_tensors="pt"
                 )['input_values']
                 for elem in batch
-            ]).to(torch.float16).to(self.device)
+            ]).to(self.device)
             outputs = self.model(input_values=inputs)
             cls_embeddings = outputs.hidden_states[-1][:, 0, :]
             embs.append(cls_embeddings.cpu().numpy())

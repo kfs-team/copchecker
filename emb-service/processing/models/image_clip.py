@@ -11,7 +11,7 @@ class ImageCLIPEncoder(Encoder):
     def __init__(self, device):
         super().__init__(device)
 
-        self.model = CLIPModel.from_pretrained('openai/clip-vit-base-patch32').eval().to(torch.float16).to(self.device)
+        self.model = CLIPModel.from_pretrained('openai/clip-vit-base-patch32').eval().to(self.device)
         self.processor = CLIPProcessor.from_pretrained('openai/clip-vit-base-patch32')
 
     @torch.inference_mode()
@@ -41,7 +41,7 @@ class ImageCLIPEncoder(Encoder):
             inputs = self.processor(
                 images=frames,  # list[np.ndarray] | np.ndarray
                 return_tensors="pt",
-            ).to(torch.float16).to(self.device)
+            ).to(self.device)
             outputs = self.model.get_image_features(**inputs).cpu().numpy()
 
             if len(outputs):
