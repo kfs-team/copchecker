@@ -104,7 +104,7 @@ services:
      - milvus
      - minionetwork
     volumes:
-      - ./milvus/milvus_config.yaml:/milvus/configs/milvus.yaml
+      - ./configs/milvus_config.yaml:/milvus/configs/milvus.yaml
       - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/milvus:/var/lib/milvus
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9091/healthz" ]
