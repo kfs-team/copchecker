@@ -31,7 +31,7 @@ services:
         /usr/bin/mc ls myminio/milvus-vdb || /usr/bin/mc mb myminio/milvus-vdb;
         /usr/bin/mc ls myminio/video-service-bucket || /usr/bin/mc mb myminio/video-service-bucket;
       "
-
+      
   postgres:
     image: postgres:12
     ports:
@@ -149,7 +149,7 @@ services:
      - milvus
      - minionetwork
     volumes:
-      - ./milvus/milvus_config.yaml:/milvus/configs/milvus.yaml
+      - ./configs/milvus_config.yaml:/milvus/configs/milvus.yaml
       - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/milvus:/var/lib/milvus
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9091/healthz" ]
@@ -161,9 +161,8 @@ services:
       - "19530:19530"
       - "9091:9091"
     depends_on:
-      - "milvus-etcd"
-      - "minio-setup"
-
+      - milvus-etcd
+      - minio-setup
 networks:
  minionetwork:
    driver: bridge
