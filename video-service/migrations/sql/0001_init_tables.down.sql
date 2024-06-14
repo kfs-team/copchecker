@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS videos;
+DROP TABLE IF EXISTS index_videos;
