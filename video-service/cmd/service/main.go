@@ -71,6 +71,6 @@ func main() {
 	router.HandleFunc("/video", uploadVideoHandler.Handle).Methods("POST")
 	router.HandleFunc("/video/{id}", getVideoHandler.Handle).Methods("GET")
 	router.HandleFunc("/processing/{id}", getProcessingByVideoIdHandler.Handle).Methods("GET")
-	logger.Info("Listening on port 9999")
-	http.ListenAndServe(":9999", router)
+	logger.Info("Listening on port 1111")
+	http.ListenAndServe(":1111", router)
 }
