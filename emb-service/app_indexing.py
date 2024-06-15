@@ -1,20 +1,23 @@
-from kafka_conn import KafkaProducer, KafkaConsumer
+import shutil
+import tempfile
 
+from kafka_conn import KafkaProducer, KafkaConsumer
 from processing import *
+from .utils import download_content
 
 
 def main():
     checking_pipeline = Pipeline(
         Embedder(
             audio_encoder=AudioASTEncoder(
-                device=autodevice(),
+                device=utils.autodevice(),
                 batch_size=16,  # fixme config
                 segment_len=10,  # fixme config
                 overlap_len=0,  # fixme config
                 segment_step=2  # fixme config
             ),
             video_encoder=ImageCLIPEncoder(
-                device=autodevice(),
+                device=utils.autodevice(),
                 batch_size=16,  # fixme config
                 segment_len=10,  # fixme config
                 overlap_len=0,  # fixme config
@@ -27,10 +30,17 @@ def main():
         )
     )
 
-    video_path = ...
-    video_id = ...
+    temp_dir = tempfile.mkdtemp()
+    try:
+        video_id = ...
+        video_path = download_content(...) # fixme
+        checking_pipeline.run(video_path, video_id)
+        result = checking_pipeline.run(video_path, video_id) # fixme
 
-    checking_data = checking_pipeline.run(video_path, video_id)
+    except Exception as e:
+        raise  # report to backend
+    finally:
+        shutil.rmtree(temp_dir)
 
 
 if __name__ == '__main__':
