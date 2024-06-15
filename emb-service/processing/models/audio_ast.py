@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Dict
 
 import numpy as np
 import torch
@@ -12,8 +12,15 @@ from .encoder import Encoder
 class AudioASTEncoder(Encoder):
     BATCH_SIZE = 64
 
-    def __init__(self, device):
-        super().__init__(device)
+    def __init__(
+        self,
+        device: str,
+        batch_size: int,
+        segment_len: int,
+        overlap_len: int | None,
+        segment_step: int
+    ):
+        super().__init__(device, batch_size, segment_len, overlap_len, segment_step)
 
         self.model = ASTForAudioClassification.from_pretrained(
             "MIT/ast-finetuned-audioset-10-10-0.4593",
@@ -22,19 +29,14 @@ class AudioASTEncoder(Encoder):
         self.feature_extractor = ASTFeatureExtractor.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
 
     @torch.inference_mode()
-    def get_embeddings(
-            self,
-            video: str,
-            segment_len: int = 12,
-            overlap_len: int | None = None,
-    ) -> np.ndarray:
+    def get_embeddings(self, video: str) -> np.ndarray:
         waveform, sample_rate = self.load_audio(video)
 
-        interval_size = (waveform.shape[1] // (segment_len * sample_rate))
+        interval_size = (waveform.shape[1] // (self.segment_len * sample_rate))
         wf_tensor = torch.vstack(
             [
-                waveform[..., :interval_size * segment_len * sample_rate].reshape(interval_size, segment_len * sample_rate),
-                waveform[..., -segment_len * sample_rate:]
+                waveform[..., :interval_size * self.segment_len * sample_rate].reshape(interval_size, self.segment_len * sample_rate),
+                waveform[..., -self.segment_len * sample_rate:]
             ]
         )
 
@@ -51,8 +53,9 @@ class AudioASTEncoder(Encoder):
             outputs = self.model(input_values=inputs)
             cls_embeddings = outputs.hidden_states[-1][:, 0, :]
             embs.append(cls_embeddings.cpu().numpy())
-
-        return np.concatenate(embs)
+        embs = np.concatenate(embs)
+        embs /= np.linalg.norm(embs, axis=0)
+        return embs
 
     @staticmethod
     def load_audio(file_path, target_sample_rate=16000) -> Tuple[torch.Tensor, int]:

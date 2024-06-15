@@ -39,12 +39,3 @@ class KafkaConsumer:
 
     def stop(self):
         self.running = False
-
-# if __name__ == "__main__":
-#     kafka_consumer = KafkaConsumer(brokers='localhost:9092', group_id='my_group', topic='your_topic')
-#     try:
-#         kafka_consumer.start()
-#     except Exception as e:'
-#         print(f"Error occurred: {e}")
-#     finally:
-#         kafka_consumer.stop()

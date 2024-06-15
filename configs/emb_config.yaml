@@ -1,0 +1,13 @@
+milvus_settings:
+  host: 'http://192.168.0.110:19530'
+  username: ''
+  password: ''
+
+  db_settings:
+    collection_name: "copyright"
+    video_emb_dim: 512
+    audio_emb_dim: 768
+    HNSW:
+      M: 32
+      efConstruction: 200
+      ef: 200
