@@ -1,0 +1,14 @@
+pandas==2.2.2
+pillow==10.3.0
+pytz==2024.1
+referencing==0.35.1
+requests==2.32.3
+rich==13.7.1
+rpds-py==0.18.1
+six==1.16.0
+streamlit==1.35.0
+streamlit-image-coordinates==0.1.9
+streamlit-option-menu==0.3.13
+toml==0.10.2
+typing_extensions==4.12.2
+urllib3==2.2.1

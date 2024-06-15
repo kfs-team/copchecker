@@ -11,15 +11,15 @@ import (
 
 type Interval struct {
 	IndexId string `json:"index_id"`
-	Start   int    `json:"start"`
-	End     int    `json:"end"`
+	Start   int    `json:"start_at"`
+	End     int    `json:"end_at"`
 }
 
 type ProcessingResultMessage struct {
 	VideoId   string     `json:"video_id" ,db:"video_id"`
 	Valid     bool       `json:"valid" ,db:"valid"`
 	Start     time.Time  `json:"start_time" ,db:"start"`
-	End       time.Time  `json:"end_time" ,db:"end"`
+	End       time.Time  `json:"end_time" ,db:"end_at"`
 	Intervals []Interval `json:"intervals" ,db:"intervals"`
 }
 

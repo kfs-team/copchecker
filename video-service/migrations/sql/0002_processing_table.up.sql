@@ -3,8 +3,8 @@ CREATE TABLE IF NOT EXISTS processing (
     video_id VARCHAR(255) NOT NULL,
     intervals jsonb NOT NULL,
     valid BOOLEAN NOT NULL DEFAULT TRUE,
-    start TIMESTAMP NOT NULL,
-    "end" TIMESTAMP NOT NULL
+    start_at TIMESTAMP NOT NULL,
+    end_at TIMESTAMP NOT NULL
 );
 
 ALTER TABLE processing ADD COLUMN added BOOLEAN NOT NULL DEFAULT FALSE;

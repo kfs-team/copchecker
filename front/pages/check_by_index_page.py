@@ -1,4 +1,6 @@
 import streamlit as st
+import os
+import requests
 
 
 
@@ -26,6 +28,19 @@ def check_by_index_page():
                 # Реальная загрузка файла
                 # Загружаем файл на сервер или выполняем другие действия
                 video_bytes = uploaded_file.read()
+
+                def send_request() -> requests.Response:
+                    files = {
+                        "video": video_bytes,
+                    }
+                    data = {
+                        "name": uploaded_file.name,
+                        "index": "false"
+                    }
+                    response = requests.post(f"{os.getenv('VIDEO_SERVICE_URL')}/video", files=files, data=data)
+                    return response
+
+                send_request()
                 # Здесь вы можете сохранить видео на сервер или выполнить другие необходимые действия
                 st.success("Видео добавлено в очередь на проверку")
             if st.button("OK"):

@@ -172,3 +172,4 @@ video-service/vendor
 video-service/go.sum
 .DS_Store
 video-service/go.sum
+volumes
