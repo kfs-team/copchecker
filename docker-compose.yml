@@ -116,6 +116,16 @@ services:
     networks:
       - minionetwork
 
+  front:
+    build: 
+      context: ./front
+    ports:
+      - "8501:8501"
+    environment:
+      VIDEO_SERVICE_URL: http://video-service:1111
+    networks:
+      - minionetwork
+
   milvus-etcd:
     container_name: milvus-etcd
     image: quay.io/coreos/etcd:v3.5.5

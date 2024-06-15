@@ -1,4 +1,6 @@
 import streamlit as st
+import requests
+import os
 
 # no_sidebar_style = """
 #     <style>
@@ -17,8 +19,23 @@ def add_to_index_page():
                 # Реальная загрузка файла
                 # Загружаем файл на сервер или выполняем другие действия
                 video_bytes = uploaded_file.read()
-                # Здесь вы можете сохранить видео на сервер или выполнить другие необходимые действия
-                st.success("Видео добавлено в очередь на индексацию")
+
+                def send_request() -> requests.Response:
+                    files = {
+                        "video": video_bytes,
+                    }
+                    data = {
+                        "name": uploaded_file.name,
+                        "index": "true",
+                    }
+                    response = requests.post(f"{os.getenv('VIDEO_SERVICE_URL')}/video", files=files, data=data)
+                    return response
+
+                response = send_request()
+                if response.status_code == 200:
+                    st.success("Видео добавлено в очередь на индексацию")
+                else:
+                    st.error(f"Ошибка: {response.text}")
 
 
 

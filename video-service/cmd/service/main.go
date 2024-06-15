@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+
 	"video-service/internal"
 	"video-service/internal/handlers"
 
@@ -67,10 +68,12 @@ func main() {
 	uploadVideoHandler := handlers.NewUploadVideoHandler(db, minioClient, logger, kafkaIndexProducer, kafkaProcessingProducer)
 	getVideoHandler := handlers.NewGetVideoHandler(db, minioClient, logger)
 	getProcessingByVideoIdHandler := handlers.NewGetProcessingByVideoIdHandler(db, logger)
+	getAllProcessingsHandler := handlers.NewGetAllProcessingsHandler(db, logger)
 	router := mux.NewRouter()
 	router.HandleFunc("/video", uploadVideoHandler.Handle).Methods("POST")
 	router.HandleFunc("/video/{id}", getVideoHandler.Handle).Methods("GET")
 	router.HandleFunc("/processing/{id}", getProcessingByVideoIdHandler.Handle).Methods("GET")
+	router.HandleFunc("/processing", getAllProcessingsHandler.Handle).Methods("GET")
 	logger.Info("Listening on port 1111")
 	http.ListenAndServe(":1111", router)
 }

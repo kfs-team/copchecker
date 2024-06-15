@@ -1,6 +1,6 @@
 import streamlit as st
 import requests
-import json
+import os
 from pathlib import Path
 
 # получить json файл с информацией
@@ -12,8 +12,12 @@ from pathlib import Path
 @st.cache_data(ttl=30)
 def get_processing():
     # get запрос на json с основной инфой о проверках
-    answer = requests.get("http://192.168.0.110:8000/get_processings").json()
-    video_names = [video['video_name'] for video in answer]
+    answer = requests.get(f"{os.getenv('VIDEO_SERVICE_URL')}/processing")
+    if answer.status_code != 200:
+        st.error("Не удалось получить информацию о проверках, ЖИЖА")
+        return None, None, None, None
+    answer = answer.json()
+    video_names = [video['name'] for video in answer]
     processing_ids = [video['processing_id'] for video in answer]
     image_links = [video['thumbnail_url'] for video in answer]
     is_stolen = [video['has_copyright_violences'] for video in answer]
@@ -43,6 +47,8 @@ def completed_checks_page():
     # Заголовок страницы
     st.title("Выполненные проверки")
     video_names, processing_ids, image_links, is_stolen = get_processing()
+    if video_names is None or processing_ids is None or image_links is None or is_stolen is None:
+        return
     if 'button_clicked' not in st.session_state:
         st.session_state.button_clicked = [False] * len(video_names)
 
