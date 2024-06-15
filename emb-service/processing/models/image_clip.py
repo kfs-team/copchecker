@@ -44,7 +44,9 @@ class ImageCLIPEncoder(Encoder):
                 images=frames,  # list[np.ndarray] | np.ndarray
                 return_tensors="pt",
             ).to(self.device)
-            outputs = self.model.get_image_features(**inputs).cpu().numpy()
+
+            with torch.autocast(device_type=self.device):
+                outputs = self.model.get_image_features(**inputs).cpu().numpy()
 
             if len(outputs):
                 average_embedding = np.mean(outputs, axis=0)

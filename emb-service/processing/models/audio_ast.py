@@ -50,7 +50,8 @@ class AudioASTEncoder(Encoder):
                 )['input_values']
                 for elem in batch
             ]).to(self.device)
-            outputs = self.model(input_values=inputs)
+            with torch.autocast(device_type=self.device):
+                outputs = self.model(input_values=inputs)
             cls_embeddings = outputs.hidden_states[-1][:, 0, :]
             embs.append(cls_embeddings.cpu().numpy())
         embs = np.concatenate(embs)
