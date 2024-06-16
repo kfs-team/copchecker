@@ -48,7 +48,7 @@ class ImageCLIPEncoder(Encoder):
                 pip_start, pip_end, box = picinpic_intervals[current_pip_idx]
 
                 if not (segment_start <= pip_start and segment_end >= pip_end):
-                    current_pip_idx = min(current_pip_idx + 1, len(picinpic_intervals))
+                    current_pip_idx = min(current_pip_idx + 1, len(picinpic_intervals) - 1)
                     pip_start, pip_end, box = picinpic_intervals[current_pip_idx]
 
                 crops = [
