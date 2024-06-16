@@ -54,7 +54,7 @@ class AudioASTEncoder(Encoder):
             embs.append(cls_embeddings.cpu().numpy())
         embs = np.concatenate(embs)
         embs /= np.linalg.norm(embs, axis=0)
-        return embs
+        return embs.astype(np.float32)
 
     @staticmethod
     def load_audio(file_path, target_sample_rate=16000) -> Tuple[torch.Tensor, int]:

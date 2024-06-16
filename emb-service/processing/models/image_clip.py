@@ -53,7 +53,7 @@ class ImageCLIPEncoder(Encoder):
                 average_embedding /= np.linalg.norm(average_embedding, ord=2)
                 embeddings.append(average_embedding)
 
-        return {'embeddings': np.array(embeddings), 'intervals': self.get_intervals(video_duration)}
+        return {'embeddings': np.array(embeddings).astype(np.float32), 'intervals': self.get_intervals(video_duration)}
 
     def get_intervals(self, video_duration: float) -> List[Tuple[int, int]]:
         video_duration = int(video_duration)
