@@ -21,33 +21,51 @@ def main_helper(
     global_settings: Dict[str, Any],
     service_settings: Dict[str, Any]
 ) -> None:
+
+    consumer_topic = service_settings['kafka_consumer_topic']
+    producer_topic = service_settings['kafka_producer_topic']
+
     minio_client = Minio(**global_settings['minio'])
     consumer = KafkaConsumer(
-        service_settings['kafka_consumer_topic'],
+        consumer_topic,
         bootstrap_servers=global_settings['kafka']['bootstrap_servers'],
-        auto_offset_reset='earliest'
+        auto_offset_reset='earliest',
+        group_id='group'
+    )
+    producer = KafkaProducer(
+        bootstrap_servers=global_settings['kafka']['bootstrap_servers'],
+        value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+        acks="all",
+        retries=3,
     )
 
-    tmp_dir = Path(tempfile.mkdtemp())
-    for message in consumer:
-        logger.info(f'Received a message')
-        try:
-            json_data = json.loads(message.value.decode('utf-8'))
-            video_id = json_data['uuid']
-            video_path = download_content(
-                minio_client, json_data['bucket_name'], json_data['video_name'], tmp_dir
-            )
-            output = pipeline.run(video_path=video_path, video_id=video_id) # str or json
-            output_message = {'data': output}
-            # todo send message to service_settings['kafka_producer_topic']
-        except Exception as e:
-            logger.error("Exception occurred", exc_info=True)
-            # todo report to backend
-        finally:
-            shutil.rmtree(tmp_dir)
+    while True:
+        msgs = consumer.poll(timeout_ms=1000)
+        for partition, messages in msgs.items():
+            for msg in messages:
+                logger.info(f"Partition: {partition}, Offset: {msg.offset}, Key: {msg.key}")
+                consumer.commit()
+                tmp_dir = Path(tempfile.mkdtemp())
+
+                try:
+                    json_data = json.loads(msg.value)
+                    video_id = json_data['uuid']
+                    video_path = download_content(
+                        minio_client, json_data['bucket_name'], json_data['video_name'], tmp_dir
+                    )
+                    output = pipeline.run(video_path=video_path, video_id=video_id)  # str or json
+                    output_message = {'data': output}
+
+                    producer.send(producer_topic, output_message)
+                    logger.info(f"Message sent to {producer_topic}")
+                except Exception as e:
+                    logger.error("Exception occurred", exc_info=True)
+                    # todo report to backend
+                finally:
+                    shutil.rmtree(tmp_dir)
 
 
-def main_checker(config):
+def main_checker(config: Dict[str, Any]) -> None:
     logger.info("Starting checking service...")
 
     algo_settings = config['algo_settings']
@@ -89,7 +107,7 @@ def main_checker(config):
     )
 
 
-def main_indexer(config):
+def main_indexer(config: Dict[str, Any]) -> None:
     logger.info("Starting indexer service...")
 
     algo_settings = config['algo_settings']

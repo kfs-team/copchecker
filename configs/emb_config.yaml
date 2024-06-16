@@ -31,10 +31,10 @@ algo_settings:
 
 indexer_settings:
   kafka_consumer_topic: 'index-input'
-  kafka_producer_topic: 'processing-result'
+  kafka_producer_topic: 'index-result'
 
 checker_settings:
-  kafka_consumer_topic: 'index-input'
+  kafka_consumer_topic: 'processing-input'
   kafka_producer_topic: 'processing-result'
 
 
