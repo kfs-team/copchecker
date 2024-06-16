@@ -55,9 +55,17 @@ class MilvusSearch(Operator):
             )
             proposals.extend(batch_proposals)
 
-        return {self.__class__.__name__ + '_output': proposals}
+        return {self.__class__.__name__.lower() + '_output': proposals}
 
     @staticmethod
     def create_batch_iterator(lst, batch_size):
         for i in range(0, len(lst), batch_size):
             yield lst[i:i + batch_size]
+
+
+class CheckingPostprocessor(Operator):
+    def __init__(self):
+        pass
+
+    def run(self, **kwargs):
+        return {self.__class__.__name__.lower() + '_output': {'a': 'b', 'c': 'd'}} # todo

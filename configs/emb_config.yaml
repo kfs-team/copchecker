@@ -11,3 +11,33 @@ milvus_settings:
       M: 32
       efConstruction: 200
       ef: 200
+
+global_settings:
+  minio:
+    endpoint: 'minio:9000'
+    access_key: 'ROOTUSERNAME'
+    secret_key: 'ROOTPASSWORD'
+
+  kafka:
+    bootstrap_servers: [ 'localhost:29092' ]
+
+
+algo_settings:
+  segment_len: 10
+  overlap_len: 0
+  segment_step: 2
+  audio_encoder_batch_size: 16
+  video_encoder_batch_size: 16
+
+indexer_settings:
+  kafka_consumer_topic: 'index-input'
+  kafka_producer_topic: 'processing-result'
+
+checker_settings:
+  kafka_consumer_topic: 'index-input'
+  kafka_producer_topic: 'processing-result'
+
+
+
+
+
