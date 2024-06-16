@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 
 from loguru import logger
 from pymilvus import MilvusClient
@@ -64,12 +64,21 @@ class Embedder(Operator):
         self.audio_encoder = audio_encoder
         self.video_encoder = video_encoder
 
-    def run(self, video_path: str, video_id: str, **kwargs) -> Dict[str, List]:
+    def run(
+        self,
+        video_path: str,
+        video_id: str,
+        picinpicdetector_output: List[Tuple[int, int, List]] = [],
+        **kwargs
+    ) -> Dict[str, List]:
         logger.info(f"Extracting audio embeddings")
         audio_embs = self.audio_encoder.get_embeddings(video_path)
 
         logger.info(f"Extracting video embeddings")
-        video_data = self.video_encoder.get_embeddings(video_path)
+        video_data = self.video_encoder.get_embeddings(
+            video_path,
+            picinpic_intervals=picinpicdetector_output
+        )
         video_embs = video_data['embeddings']
         intervals = video_data['intervals']
 

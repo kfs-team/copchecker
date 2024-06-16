@@ -1,7 +1,9 @@
-from typing import Dict, Any, List
-from itertools import chain
+from typing import Dict, Any
 
 import numpy as np
+import torch
+from ultralytics import YOLO
+from moviepy.editor import VideoFileClip
 from pymilvus import connections, Collection, AnnSearchRequest, RRFRanker
 
 from .operators import Operator
@@ -61,6 +63,98 @@ class MilvusSearch(Operator):
     def create_batch_iterator(lst, batch_size):
         for i in range(0, len(lst), batch_size):
             yield lst[i:i + batch_size]
+
+
+class PicInPicDetector(Operator):
+    def __init__(
+        self,
+        device: str,
+        detector_path: str,
+        min_length: int,
+        pip_area_threshold: float,
+        confidence_threshold: float,
+        black_share_threshold: float,
+        frame_every_k_sec: int
+    ):
+        assert 0 <= pip_area_threshold <= 1, pip_area_threshold
+        assert 0 <= confidence_threshold <= 1, confidence_threshold
+        assert 0 <= black_share_threshold <= 1, black_share_threshold
+
+        self.detector = YOLO(detector_path).to(device)
+
+        self.min_length = min_length
+        self.pip_area_threshold = pip_area_threshold
+        self.confidence_threshold = confidence_threshold
+        self.frame_every_k_sec = frame_every_k_sec
+
+    @torch.inference_mode()
+    def run(
+        self,
+        video_path: str,
+    ) -> Dict[str, Any]:
+        video = VideoFileClip(video_path)
+
+        # Step 1: Detect picture-in-picture frames in the video
+        pip_timestamps = []
+        for i in range(0, int(video.duration), self.frame_every_k_sec):
+            img = video.get_frame(i)
+            out = self.detector(img, verbose=False)
+            if out[0].boxes:
+                box = out[0].boxes.xyxy.cpu().int().tolist()[0]
+                confidence = round(out[0].boxes.conf[0].cpu().item(), 2)
+                if confidence >= self.confidence_threshold:
+                    pip_timestamps.append((i, confidence, box))
+            else:
+                pass
+                # pip not found
+
+        # if potential pip is not found in the video
+        if not pip_timestamps:
+            final_results = []
+        else:
+            # Step 2: Split the detected frames into intervals based on a minimum length
+            intervals = []
+            current_interval = []
+
+            for i in range(len(pip_timestamps)):
+                if not current_interval:
+                    current_interval.append(pip_timestamps[i])
+                else:
+                    if pip_timestamps[i][0] - current_interval[-1][0] < self.min_length:
+                        current_interval.append(pip_timestamps[i])
+                    else:
+                        if current_interval[-1][0] - current_interval[0][0] >= self.min_length:
+                            intervals.append((current_interval[0][0], current_interval[-1][0]))
+                        current_interval = [pip_timestamps[i]]
+
+            if current_interval and (current_interval[-1][0] - current_interval[0][0] >= self.min_length):
+                intervals.append((current_interval[0][0], current_interval[-1][0]))
+
+            # Step 3: Select the highest confidence bounding boxes for each interval
+            # Need to filter with relative PiP area
+            potential_pip = []
+
+            for interval in intervals:
+                start, end = interval
+                filtered_results = [res for res in pip_timestamps if start <= res[0] <= end]
+
+                if filtered_results:
+                    highest_confidence_result = max(filtered_results, key=lambda x: x[1])
+                    potential_pip.append((start, end, highest_confidence_result[2]))
+
+            # Step 4. Filter relative by relative area. Crop is PiP when area <= thr * video area
+            video_shape = video.get_frame(0).shape
+            video_area = video_shape[0] * video_shape[1]
+            final_results = []
+
+            for interval in potential_pip:
+                x_min, y_min, x_max, y_max = interval[-1]
+                box_area = (x_max - x_min) * (y_max - y_min)
+                relative_area = box_area / video_area
+                if relative_area <= self.pip_area_threshold:
+                    final_results.append(interval)
+
+        return {self.__class__.__name__.lower() + '_output': final_results}
 
 
 class CheckerDatabasePostprocessor(Operator):

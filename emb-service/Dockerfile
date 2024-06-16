@@ -18,4 +18,7 @@ COPY ./app.py ./app.py
 
 COPY ./configs/emb_config.yaml ./emb_config.yaml
 
+RUN mkdir -p /app/weights
+RUN wget "https://storage.yandexcloud.net/copchecker-weights/pic_in_pic_detector_yolo.pt" -P weights/
+
 ENTRYPOINT ["/bin/bash"]

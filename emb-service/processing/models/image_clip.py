@@ -23,12 +23,11 @@ class ImageCLIPEncoder(Encoder):
         self.processor = CLIPProcessor.from_pretrained('openai/clip-vit-base-patch32')
 
     @torch.inference_mode()
-    def get_embeddings(self, video: str) -> Dict[str, np.ndarray | int]:
-        """Get embeddings from the video
-        :param video: path to the video
-        :self.segment_len: len of the segment to calc embeddings (sec)
-        :overpap_len: len of the segments overlap (insec)
-        """
+    def get_embeddings(
+        self,
+        video: str,
+        picinpic_intervals: List[Tuple[int, int, List]] = []
+    ) -> Dict[str, np.ndarray | int]:
         video = VideoFileClip(video)
         video_duration = video.duration
 
