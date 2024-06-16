@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"net/http"
+	"os"
+	"time"
 
 	"video-service/internal"
 	"video-service/internal/handlers"
@@ -41,29 +43,52 @@ func main() {
 		cancel()
 	}()
 
-	kafkaIndexConsumer := internal.KafkaConsumer([]string{kafkaHost}, indexResultTopic)
-	kafkaProcessingConsumer := internal.KafkaConsumer([]string{kafkaHost}, processingResult)
-	kafkaProducer := internal.KafkaProducer([]string{kafkaHost})
-
 	// creating topics
+	logger.Info("Creating topics")
+	retries := 10
+	for sec := range retries {
+		conn, err := kafka.DialLeader(ctx, "tcp", kafkaHost, indexTopic, 0)
+		if err != nil {
+			logger.Error(err)
+			time.Sleep(time.Second * time.Duration(sec))
+			continue
+		}
+		logger.Info("Kafka index topic connected")
+		conn.Close()
+		break
+	}
 	conn, err := kafka.DialLeader(ctx, "tcp", kafkaHost, indexTopic, 0)
 	if err != nil {
 		logger.Fatal(err)
 	}
+	logger.Info("Kafka index topic connected")
 	conn.Close()
 
 	conn, err = kafka.DialLeader(ctx, "tcp", kafkaHost, processingTopic, 0)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Error(err)
 	}
+	logger.Info("Kafka processing topic connected")
 	conn.Close()
+
+	kafkaIndexConsumer, err := internal.KafkaConsumer([]string{kafkaHost}, indexResultTopic)
+	if err != nil {
+		logger.Error(err)
+		os.Exit(1)
+	}
+	kafkaProcessingConsumer, err := internal.KafkaConsumer([]string{kafkaHost}, processingResult)
+	if err != nil {
+		logger.Error(err)
+		os.Exit(1)
+	}
+	kafkaProducer := internal.KafkaProducer([]string{kafkaHost})
 
 	minioClient, err := minio.New(minioHost, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 		Secure: false,
 	})
 	if err != nil {
-		logger.Fatal(err)
+		logger.Error(err)
 	}
 	dbClient, err := sqlx.Connect("postgres", dbConnectionString)
 	if err != nil {

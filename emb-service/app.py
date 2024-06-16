@@ -39,17 +39,21 @@ def main_helper(
         retries=3,
     )
 
+    ids = set()
     while True:
         msgs = consumer.poll(timeout_ms=1000)
         for partition, messages in msgs.items():
             for msg in messages:
                 logger.info(f"Partition: {partition}, Offset: {msg.offset}, Key: {msg.key}")
-                consumer.commit()
                 tmp_dir = Path(tempfile.mkdtemp())
 
                 try:
                     json_data = json.loads(msg.value)
                     video_id = json_data['uuid']
+                    if video_id in ids:
+                        consumer.commit()
+                        continue
+                    ids.add(video_id)
                     video_path = download_content(
                         minio_client, json_data['bucket_name'], json_data['video_name'], tmp_dir
                     )
@@ -57,9 +61,11 @@ def main_helper(
                     producer.send(producer_topic, output)
                     logger.info(f"Message sent to {producer_topic}")
                 except Exception as e:
-                    logger.error("Exception occurred", exc_info=True)
+                    logger.error(f"Exception occurred {e}", exc_info=True)
+                    logger.error(e, exc_info=True)
                     # todo report to backend
                 finally:
+                    consumer.commit()
                     shutil.rmtree(tmp_dir)
 
 
@@ -93,7 +99,7 @@ def main_checker(config: Dict[str, Any]) -> None:
             milvus_collection_name=milvus_settings['db_settings']['collection_name']
         ),
         CheckerDatabasePostprocessor(),    # fixme
-        output_field='checkingpostprocessor_output'
+        output_field='checkerdatabasepostprocessor_output'
     )
 
     logger.info("Checking pipeline successfully created")
