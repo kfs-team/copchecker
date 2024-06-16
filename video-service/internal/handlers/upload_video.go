@@ -21,6 +21,7 @@ const (
 	bucketName      = "video-service-bucket"
 	indexTopic      = "index-input"
 	processingTopic = "processing-input"
+	retiries        = 3
 )
 
 type Response struct {
@@ -68,16 +69,21 @@ func isVideoExist(db *internal.Postgres, md5Hash string) (bool, error) {
 
 func writeKafkaMessage(producer *kafka.Writer, kafkaMessage *KafkaMessage) error {
 	kafkaMessageBytes, _ := json.Marshal(kafkaMessage)
-	err := producer.WriteMessages(context.Background(), []kafka.Message{
-		{
-			Value: kafkaMessageBytes,
-			Topic: kafkaMessage.topic,
-		},
-	}...)
-	if err != nil {
-		return err
+	var err error
+	for i := 0; i < retiries; i++ {
+		err = producer.WriteMessages(context.Background(), []kafka.Message{
+			{
+				Value: kafkaMessageBytes,
+				Topic: kafkaMessage.topic,
+			},
+		}...)
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+		return nil
 	}
-	return nil
+	return err
 }
 
 func (h *UploadVideoHandler) Handle(w http.ResponseWriter, r *http.Request) {

@@ -62,7 +62,7 @@ func (r *ProcessingResultReader) Start() {
 		case <-r.ctx.Done():
 			return
 		default:
-			msg, err := r.reader.ReadMessage(r.ctx)
+			msg, err := r.reader.FetchMessage(r.ctx)
 			if err != nil {
 				r.logger.Error(err)
 				continue
@@ -82,6 +82,7 @@ func (r *ProcessingResultReader) Start() {
 				continue
 			}
 			r.logger.Info("Processing result message inserted")
+			r.reader.CommitMessages(r.ctx, msg)
 		}
 	}
 }
@@ -103,7 +104,7 @@ func (r *IndexResultReader) Start() {
 		case <-r.ctx.Done():
 			return
 		default:
-			msg, err := r.reader.ReadMessage(r.ctx)
+			msg, err := r.reader.FetchMessage(r.ctx)
 			if err != nil {
 				r.logger.Error(err)
 				continue
@@ -118,6 +119,7 @@ func (r *IndexResultReader) Start() {
 				continue
 			}
 			r.logger.Info("Index video added")
+			r.reader.CommitMessages(r.ctx, msg)
 		}
 	}
 }
