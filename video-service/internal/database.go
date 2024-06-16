@@ -20,13 +20,14 @@ type ProcessingResult struct {
 }
 
 type Processing struct {
-	Name                  string    `json:"name" db:"name"`
-	ThumbnailUrl          string    `json:"thumbnail_url" db:"thumbnail_url"`
-	VideoId               string    `json:"video_id" db:"video_id"`
-	HasCopyrightViolences bool      `json:"has_copyright_violences" db:"has_copyright_violences"`
-	ProcessingId          int       `json:"processing_id" db:"processing_id"`
-	Start                 time.Time `json:"start_at" db:"start_at"`
-	End                   time.Time `json:"end_at" db:"end_at"`
+	Name                  string     `json:"name" db:"name"`
+	ThumbnailUrl          string     `json:"thumbnail_url" db:"thumbnail_url"`
+	VideoId               string     `json:"video_id" db:"video_id"`
+	HasCopyrightViolences bool       `json:"has_copyright_violences" db:"has_copyright_violences"`
+	ProcessingId          int        `json:"processing_id" db:"processing_id"`
+	Intervals             []Interval `json:"intervals" db:"intervals"`
+	Start                 time.Time  `json:"start_at" db:"start_at"`
+	End                   time.Time  `json:"end_at" db:"end_at"`
 }
 
 type Video struct {
@@ -137,7 +138,8 @@ SELECT v.name as name,
 	valid as has_copyright_violences,
 	processing_id,
 	start_at,
-	end_at
+	end_at,
+	intervals,
 	FROM processing
 	left join videos v on processing.video_id = v.video_id
 	`
