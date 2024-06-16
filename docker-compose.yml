@@ -173,6 +173,16 @@ services:
       - milvus-etcd
       - minio-setup
 
+  milvus-setup:
+    build:
+      context: ./emb-service
+      dockerfile: ./scripts/Dockerfile
+    depends_on:
+      - milvus-standalone
+      - milvus-etcd
+    networks:
+      - milvus
+
   indexing-service:
     build:
       context: ./emb-service
