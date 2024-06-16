@@ -92,7 +92,7 @@ def main_checker(config: Dict[str, Any]) -> None:
             milvus_password=milvus_settings['password'],
             milvus_collection_name=milvus_settings['db_settings']['collection_name']
         ),
-        CheckingPostprocessor(),    # fixme
+        CheckerDatabasePostprocessor(),    # fixme
         output_field='checkingpostprocessor_output'
     )
 
