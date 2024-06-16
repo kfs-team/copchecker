@@ -27,8 +27,8 @@ algo_settings:
   segment_len: 10
   overlap_len: 0
   segment_step: 2
-  audio_encoder_batch_size: 16
-  video_encoder_batch_size: 16
+  audio_encoder_batch_size: 64
+  video_encoder_batch_size: 64
 
   picipic_yolo:
     detector_path: weights/pic_in_pic_detector_yolo.pt
