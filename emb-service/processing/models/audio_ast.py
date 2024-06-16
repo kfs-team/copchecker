@@ -10,8 +10,6 @@ from .encoder import Encoder
 
 
 class AudioASTEncoder(Encoder):
-    BATCH_SIZE = 64
-
     def __init__(
         self,
         device: str,
@@ -41,7 +39,7 @@ class AudioASTEncoder(Encoder):
         )
 
         embs = []
-        for batch in torch.split(wf_tensor, self.BATCH_SIZE):
+        for batch in torch.split(wf_tensor, self.batch_size):
             inputs = torch.cat([
                 self.feature_extractor(
                     elem,
