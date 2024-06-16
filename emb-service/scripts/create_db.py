@@ -1,21 +1,26 @@
-import json
+import argparse
+import yaml
+
+from loguru import logger
 
 from pymilvus import (
     MilvusClient,
     FieldSchema,
     CollectionSchema,
     DataType,
+    connections,
+    db
 )
 
 
 def create_db(config):
     settings = config['milvus_settings']
+    logger.info(f"Creating milvus database with config: {settings}...")
 
     client = MilvusClient(
         uri=config['milvus_settings']['host'],
         username=settings['username'],
         password=settings['password'],
-        db_name='copyright-videos'
     )
 
     fid = FieldSchema(name="id", dtype=DataType.INT64, is_primary=True)
@@ -63,7 +68,7 @@ def create_db(config):
         field_name="video_emb",
         index_type="HNSW",
         metric_type="IP",
-        params=settings['HNSW']
+        params=settings['db_settings']['HNSW']
     )
 
     client.create_index(
@@ -75,7 +80,7 @@ def create_db(config):
         field_name="audio_emb",
         index_type="HNSW",
         metric_type="IP",
-        params=settings['HNSW']
+        params=settings['db_settings']['HNSW']
     )
 
     client.create_index(
@@ -85,12 +90,18 @@ def create_db(config):
 
     client.load_collection(settings['db_settings']['collection_name'])
 
+    logger.info(f"Collection `{settings['db_settings']['collection_name']}` has loaded")
 
-def main():
-    with open('data/config.json', 'r') as f:
-        config = json.load(f)
+
+def main(cmd_args):
+    with open(cmd_args.config) as f:
+        config = yaml.safe_load(f)
     create_db(config)
 
 
 if __name__ == '__main__':
-    main()
+    # usage: python create_db.py --config ../configs/emb_config.yaml
+    _parser = argparse.ArgumentParser()
+    _parser.add_argument('--config', type=str, required=True)
+    _args = _parser.parse_args()
+    main(_args)
