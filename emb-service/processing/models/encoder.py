@@ -20,7 +20,7 @@ class Encoder(ABC):
         self.segment_step = segment_step
 
     @abstractmethod
-    def get_embeddings(self, video: str) -> np.ndarray | Dict[str, np.ndarray | list]:
+    def get_embeddings(self, video: str, *args, **kwargs) -> np.ndarray | Dict[str, np.ndarray | list]:
         pass
 
     @property

@@ -30,6 +30,14 @@ algo_settings:
   audio_encoder_batch_size: 16
   video_encoder_batch_size: 16
 
+  picipic_yolo:
+    detector_path: weights/pic_in_pic_detector_yolo.pt
+    min_length: 10
+    pip_area_threshold: 0.5   # размер P-i-P относительно всего кадра
+    confidence_threshold: 0.9
+    black_share_threshold: 0.5
+    frame_every_k_sec: 2
+
 indexer_settings:
   kafka_consumer_topic: 'index-input'
   kafka_producer_topic: 'index-result'
