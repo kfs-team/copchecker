@@ -76,6 +76,10 @@ def main_checker(config: Dict[str, Any]) -> None:
     milvus_settings = config['milvus_settings']
 
     checking_pipeline = Pipeline(
+        PicInPicDetector(
+            device=utils.autodevice(),
+            **algo_settings['picipic_yolo']
+        ),
         Embedder(
             audio_encoder=AudioASTEncoder(
                 device=utils.autodevice(),
