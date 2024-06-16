@@ -15,6 +15,6 @@ COPY ./processing/ ./processing/
 COPY ./utils.py ./utils.py
 COPY ./app.py ./app.py
 
-COPY ../configs/emb_config.yaml ./emb_config.yaml
+COPY ./configs/emb_config.yaml ./emb_config.yaml
 
 ENTRYPOINT ["/bin/bash"]
