@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -36,13 +37,16 @@ func KafkaProducer(brokers []string) *kafka.Writer {
 	return &writer
 }
 
-func KafkaConsumer(brokers []string, topic string) *kafka.Reader {
+func KafkaConsumer(brokers []string, topic string) (*kafka.Reader, error) {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: brokers,
 		GroupID: "group",
 		Topic:   topic,
 	})
-	return reader
+	if reader == nil {
+		return nil, errors.New("kafka consumer is nil")
+	}
+	return reader, nil
 }
 
 type ProcessingResultReader struct {
