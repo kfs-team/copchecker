@@ -72,7 +72,9 @@ func (r *ProcessingResultReader) Start() {
 				continue
 			}
 			msgBytes := msg.Value
+			r.logger.Info("Message bytes: ", msgBytes)
 			var processingResultMessage ProcessingResultMessage
+			r.logger.Info("HUITA: ", processingResultMessage.VideoId)
 			_ = json.Unmarshal(msgBytes, &processingResultMessage)
 			r.logger.Info("Message: ", processingResultMessage)
 			err = r.db.InsertProcessing(&processingResultMessage)

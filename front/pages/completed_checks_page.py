@@ -15,16 +15,17 @@ def get_processing():
     answer = requests.get(f"{os.getenv('VIDEO_SERVICE_URL')}/processing")
     if answer.status_code != 200:
         st.error("Не удалось получить информацию о проверках, ЖИЖА")
-        return None, None, None, None
+        return None, None, None, None, None
     answer = answer.json()
     if answer is None or len(answer) == 0:
         st.error("Не удалось получить информацию о проверках, ЖИЖА")
-        return None, None, None, None
+        return None, None, None, None, None
     video_names = [video['name'] for video in answer]
     processing_ids = [video['processing_id'] for video in answer]
     image_links = [video['thumbnail_url'] for video in answer]
     is_stolen = [video['has_copyright_violences'] for video in answer]
-    return video_names, processing_ids, image_links, is_stolen
+    intervals = [video['intervals'] for video in answer]
+    return video_names, processing_ids, image_links, is_stolen, intervals
 
 
 def get_video_json():
@@ -49,8 +50,8 @@ def shorten_filename(filename, max_length):
 def completed_checks_page():
     # Заголовок страницы
     st.title("Выполненные проверки")
-    video_names, processing_ids, image_links, is_stolen = get_processing()
-    if video_names is None or processing_ids is None or image_links is None or is_stolen is None:
+    video_names, processing_ids, image_links, is_stolen, intervals = get_processing()
+    if video_names is None or processing_ids is None or image_links is None or is_stolen is None or intervals is None:
         return
     if 'button_clicked' not in st.session_state:
         st.session_state.button_clicked = [False] * len(video_names)
@@ -71,6 +72,8 @@ def completed_checks_page():
                 st.session_state.button_clicked[i] = not st.session_state.button_clicked[i]
         if st.session_state.button_clicked[i]:
             # здесь будет дополнительная инфа о проверке (видимо тоже из джейсонины)
+            interval = intervals[i]
+            st.write(interval)
             st.write(is_stolen[i])
             st.write('Подробная информация')
             get_video_json()
