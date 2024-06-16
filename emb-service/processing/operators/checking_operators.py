@@ -63,9 +63,25 @@ class MilvusSearch(Operator):
             yield lst[i:i + batch_size]
 
 
-class CheckingPostprocessor(Operator):
+class CheckerDatabasePostprocessor(Operator):
     def __init__(self):
         pass
 
-    def run(self, **kwargs):
-        return {self.__class__.__name__.lower() + '_output': {'a': 'b', 'c': 'd'}} # todo
+    def run(self, video_id: str, **kwargs):
+        # fixme генерация интервалов
+        import uuid
+        import random
+        intervals_data = [
+            {
+                "index_id": str(uuid.uuid4()),
+                "start": random.randint(1, 1000),
+                "end": random.randint(1, 1000),
+            } for _ in range(random.randint(0, 150))
+        ]
+
+        data = {
+            "video_id": video_id,
+            "valid": bool(random.randint(0, 2)),  # True если нет заимствований, иначе False
+            "intervals": intervals_data,
+        }
+        return {self.__class__.__name__.lower() + '_output': data}  # todo

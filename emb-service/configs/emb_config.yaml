@@ -1,5 +1,5 @@
 milvus_settings:
-  host: 'http://192.168.0.110:19530'
+  host: 'milvus-standalone:19530'
   username: ''
   password: ''
 
@@ -17,9 +17,10 @@ global_settings:
     endpoint: 'minio:9000'
     access_key: 'ROOTUSERNAME'
     secret_key: 'ROOTPASSWORD'
+    secure: off
 
   kafka:
-    bootstrap_servers: [ 'localhost:29092' ]
+    bootstrap_servers: [ 'kafka:9092' ]
 
 
 algo_settings:

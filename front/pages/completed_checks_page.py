@@ -17,6 +17,9 @@ def get_processing():
         st.error("Не удалось получить информацию о проверках, ЖИЖА")
         return None, None, None, None
     answer = answer.json()
+    if answer is None or len(answer) == 0:
+        st.error("Не удалось получить информацию о проверках, ЖИЖА")
+        return None, None, None, None
     video_names = [video['name'] for video in answer]
     processing_ids = [video['processing_id'] for video in answer]
     image_links = [video['thumbnail_url'] for video in answer]

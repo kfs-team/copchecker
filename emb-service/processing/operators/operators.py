@@ -47,7 +47,7 @@ class MilvusUpload(Operator):
                 data=batch,
                 timeout=5
             )
-        return {self.__class__.__name__.lower() + '_output': video_id}
+        return {self.__class__.__name__.lower() + '_output': {"video_id": video_id}}
 
     @staticmethod
     def create_batch_iterator(lst, batch_size):
