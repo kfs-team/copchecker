@@ -86,6 +86,7 @@ class PicInPicDetector(Operator):
         self.pip_area_threshold = pip_area_threshold
         self.confidence_threshold = confidence_threshold
         self.frame_every_k_sec = frame_every_k_sec
+        self.black_share_threshold = black_share_threshold
 
     @torch.inference_mode()
     def run(
@@ -96,17 +97,29 @@ class PicInPicDetector(Operator):
 
         # Step 1: Detect picture-in-picture frames in the video
         pip_timestamps = []
+        last_good_frame = 0
+
         for i in range(0, int(video.duration), self.frame_every_k_sec):
             img = video.get_frame(i)
             out = self.detector(img, verbose=False)
+            confidence = float('inf')
             if out[0].boxes:
                 box = out[0].boxes.xyxy.cpu().int().tolist()[0]
                 confidence = round(out[0].boxes.conf[0].cpu().item(), 2)
                 if confidence >= self.confidence_threshold:
                     pip_timestamps.append((i, confidence, box))
-            else:
-                pass
-                # pip not found
+                    last_good_frame = i
+
+            if not out[0].boxes or confidence < self.confidence_threshold:
+                black_pixel = np.array([4, 4, 4])
+                black_pixels_count = np.sum(np.all(img <= black_pixel, axis=-1))
+                if ((
+                        (black_pixels_count * 3) / img.size > self.black_share_threshold) and
+                        (i - last_good_frame <= self.min_length) and
+                        pip_timestamps
+                ):
+                    pip_timestamps.append((i, self.confidence_threshold, pip_timestamps[-1][-1]))
+                    last_good_frame = i
 
         # if potential pip is not found in the video
         if not pip_timestamps:
