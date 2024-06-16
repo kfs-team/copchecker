@@ -1,17 +1,42 @@
-# copchecker
-Video Copyright Checker
+# Сервис проверки видеофайлов на нарушение авторских прав
 
-# RUN
+В репозитории представлено решение задачи нахождения нарушений авторских прав в видеофайлах.
+
+Сервис использует **Python** для работы с моделями нейросетей, **GO** для обработки видеофайлов и передачи информации в веб-сервис, **Kafka** для общения между бекендом и ML сервисами. Мета-информация хранится в **PostgreSQL**, видео в **S3**. Для хранения эмбеддингов видео используется векторная база данных **Milvus**.
+
+Более подробная техническая документация представлена в **DOCUMENTATION.md.**
+Пайплайн обучения модели детекции картинки в картинке находится в **notebooks/pip_train.ipynb**.
+
+## Структура проекта
 ```
-make run
+├── configs
+│   └── (Конфигурационные файлы)
+├── emb-service
+│   └── (Сервис для подсчета эмбеддингов)
+├── front
+│   └── (Сервис для )
+├── notebooks
+│   └── (Эксперименты с данными)
+├── s3/data
+│   └── (Данные, хранящиеся в S3)
+├── video-service
+│   └── (Сервис для обработки видео)
+├── Makefile
+├── README.md
+└── docker-compose.yml
 ```
 
-#STOP
+### Запуск
 ```
-make stop
+docker compose up -d --build
 ```
 
-# TEST
+### STOP
+```
+docker compose down
+```
+
+### Тестирование
 ```
 curl -X POST "http://localhost:1111/video" \
   -F "video=@/path/to/your/video.mp4" \
@@ -19,11 +44,11 @@ curl -X POST "http://localhost:1111/video" \
   -F "index=true"
 ```
 
-# GET
+### GET
 ```
 curl http://localhost:1111/video/{uuid}
 ```
-# GET PROCESSING
+### GET PROCESSING
 ```
 curl http://localhost:1111/processing/{uuid}
 ```
