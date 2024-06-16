@@ -145,7 +145,6 @@ services:
       timeout: 20s
       retries: 3
 
-
   milvus-standalone:
     container_name: milvus-standalone
     image: milvusdb/milvus:v2.4.4
@@ -173,6 +172,31 @@ services:
     depends_on:
       - milvus-etcd
       - minio-setup
+
+  indexing-service:
+    build:
+      context: ./emb-service
+    depends_on:
+      - milvus-standalone
+      - video-service
+    networks:
+      - milvus
+      - minionetwork
+    entrypoint: >
+      /bin/sh -c "python3 app.py --service indexer --config emb_config.yaml" 
+
+  checking-service:
+    build:
+      context: ./emb-service
+    depends_on:
+      - milvus-standalone
+      - video-service
+    networks:
+      - milvus
+      - minionetwork
+    entrypoint: >
+      /bin/sh -c "python3 app.py --service checker --config emb_config.yaml" 
+
 networks:
  minionetwork:
    driver: bridge

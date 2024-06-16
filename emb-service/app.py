@@ -54,9 +54,7 @@ def main_helper(
                         minio_client, json_data['bucket_name'], json_data['video_name'], tmp_dir
                     )
                     output = pipeline.run(video_path=video_path, video_id=video_id)  # str or json
-                    output_message = {'data': output}
-
-                    producer.send(producer_topic, output_message)
+                    producer.send(producer_topic, output)
                     logger.info(f"Message sent to {producer_topic}")
                 except Exception as e:
                     logger.error("Exception occurred", exc_info=True)
