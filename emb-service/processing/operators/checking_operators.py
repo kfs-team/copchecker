@@ -1,4 +1,5 @@
 from typing import Dict, Any
+from datetime import datetime, timezone
 
 import numpy as np
 import torch
@@ -174,15 +175,18 @@ class CheckerDatabasePostprocessor(Operator):
     def __init__(self):
         pass
 
-    def run(self, video_id: str, **kwargs):
+    def run(self, video_id: str, start_time: str, **kwargs):
         # fixme генерация интервалов
         import uuid
         import random
+        end_time = self.get_current_utc_time_iso()
         intervals_data = [
             {
                 "index_id": str(uuid.uuid4()),
                 "start": random.randint(1, 1000),
                 "end": random.randint(1, 1000),
+                "start_time": start_time,
+                "end_time": end_time
             } for _ in range(random.randint(0, 150))
         ]
 
@@ -191,4 +195,11 @@ class CheckerDatabasePostprocessor(Operator):
             "valid": bool(random.randint(0, 2)),  # True если нет заимствований, иначе False
             "intervals": intervals_data,
         }
+
         return {self.__class__.__name__.lower() + '_output': data}  # todo
+
+    @staticmethod
+    def get_current_utc_time_iso():
+        now_utc = datetime.now(timezone.utc)
+        iso_time_str = now_utc.strftime('%Y-%m-%dT%H:%M:%SZ')
+        return iso_time_str
