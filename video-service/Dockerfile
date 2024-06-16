@@ -3,7 +3,8 @@ FROM golang:1.22-alpine AS builder
 WORKDIR /app
 
 COPY go.mod .
-RUN go mod download
+
+RUN go mod tidy
 
 # Копируем исходные файлы
 COPY . .
