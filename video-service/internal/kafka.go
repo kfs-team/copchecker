@@ -27,14 +27,13 @@ type IndexResultMessage struct {
 	VideoId string `json:"video_id"`
 }
 
-func KafkaProducer(brokers []string, topic string) *kafka.Writer {
-	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers:  brokers,
-		Topic:    topic, // Название топика
-		Balancer: &kafka.LeastBytes{},
-	},
-	)
-	return writer
+func KafkaProducer(brokers []string) *kafka.Writer {
+	writer := kafka.Writer{
+		Addr:         kafka.TCP(brokers...),
+		Balancer:     &kafka.LeastBytes{},
+		RequiredAcks: kafka.RequireAll,
+	}
+	return &writer
 }
 
 func KafkaConsumer(brokers []string, topic string) *kafka.Reader {

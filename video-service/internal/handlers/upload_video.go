@@ -18,7 +18,9 @@ import (
 )
 
 const (
-	bucketName = "video-service-bucket"
+	bucketName      = "video-service-bucket"
+	indexTopic      = "index-input"
+	processingTopic = "processing-input"
 )
 
 type Response struct {
@@ -26,14 +28,14 @@ type Response struct {
 }
 
 type UploadVideoHandler struct {
-	db                 *internal.Postgres
-	logger             *logrus.Logger
-	minioClient        *minio.Client
-	indexProducer      *kafka.Writer
-	processingProducer *kafka.Writer
+	db            *internal.Postgres
+	logger        *logrus.Logger
+	minioClient   *minio.Client
+	kafkaProducer *kafka.Writer
 }
 
 type KafkaMessage struct {
+	topic      string
 	UUID       string `json:"uuid"`
 	S3URL      string `json:"s3_url"`
 	MD5        string `json:"md5"`
@@ -41,8 +43,18 @@ type KafkaMessage struct {
 	VideoName  string `json:"video_name"`
 }
 
-func NewUploadVideoHandler(db *internal.Postgres, minioClient *minio.Client, logger *logrus.Logger, indexProducer *kafka.Writer, processingProducer *kafka.Writer) *UploadVideoHandler {
-	return &UploadVideoHandler{db: db, logger: logger, minioClient: minioClient, indexProducer: indexProducer, processingProducer: processingProducer}
+func NewUploadVideoHandler(
+	db *internal.Postgres,
+	minioClient *minio.Client,
+	logger *logrus.Logger,
+	producer *kafka.Writer,
+) *UploadVideoHandler {
+	return &UploadVideoHandler{
+		db:            db,
+		logger:        logger,
+		minioClient:   minioClient,
+		kafkaProducer: producer,
+	}
 }
 
 func isVideoExist(db *internal.Postgres, md5Hash string) (bool, error) {
@@ -56,13 +68,15 @@ func isVideoExist(db *internal.Postgres, md5Hash string) (bool, error) {
 
 func writeKafkaMessage(producer *kafka.Writer, kafkaMessage *KafkaMessage) error {
 	kafkaMessageBytes, _ := json.Marshal(kafkaMessage)
-
-	producer.WriteMessages(context.Background(), []kafka.Message{
-		kafka.Message{
+	err := producer.WriteMessages(context.Background(), []kafka.Message{
+		{
 			Value: kafkaMessageBytes,
+			Topic: kafkaMessage.topic,
 		},
-	}...,
-	)
+	}...)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -134,13 +148,15 @@ func (h *UploadVideoHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		}
 
 		kafkaMessage := &KafkaMessage{
+			topic:      processingTopic,
 			UUID:       video.VideoID,
 			S3URL:      s3URL,
 			MD5:        md5Hash,
 			BucketName: bucketName,
 			VideoName:  videoName,
 		}
-		err = writeKafkaMessage(h.indexProducer, kafkaMessage)
+		h.logger.Info("kafkaProcessingMessage: ", kafkaMessage)
+		err = writeKafkaMessage(h.kafkaProducer, kafkaMessage)
 		if err != nil {
 			h.logger.Error(err)
 			http.Error(w, "internal error", http.StatusInternalServerError)
@@ -172,13 +188,15 @@ func (h *UploadVideoHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	kafkaMessage := &KafkaMessage{
+		topic:      indexTopic,
 		UUID:       indexVideo.UUID,
 		S3URL:      s3URL,
 		MD5:        md5Hash,
 		BucketName: bucketName,
 		VideoName:  videoName,
 	}
-	err = writeKafkaMessage(h.indexProducer, kafkaMessage)
+	h.logger.Info("kafkaIndexMessage: ", kafkaMessage)
+	err = writeKafkaMessage(h.kafkaProducer, kafkaMessage)
 	if err != nil {
 		h.logger.Error(err)
 		http.Error(w, "Unable to insert index video", http.StatusInternalServerError)

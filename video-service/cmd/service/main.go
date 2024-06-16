@@ -36,14 +36,11 @@ func main() {
 	secretKey := "ROOTPASSWORD"
 	dbConnectionString := "postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable"
 	kafkaHost := "kafka:9092"
-	indexTopic := "index-input"
-	processingTopic := "processing-input"
 	indexResultTopic := "index-result"
 	processingResult := "processing-result"
-	kafkaIndexProducer := internal.KafkaProducer([]string{kafkaHost}, indexTopic)
-	kafkaProcessingProducer := internal.KafkaProducer([]string{kafkaHost}, processingTopic)
 	kafkaIndexConsumer := internal.KafkaConsumer([]string{kafkaHost}, indexResultTopic)
 	kafkaProcessingConsumer := internal.KafkaConsumer([]string{kafkaHost}, processingResult)
+	kafkaProducer := internal.KafkaProducer([]string{kafkaHost})
 
 	minioClient, err := minio.New(minioHost, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
@@ -65,7 +62,7 @@ func main() {
 	go processingResultReader.Start()
 	go indexResultReader.Start()
 
-	uploadVideoHandler := handlers.NewUploadVideoHandler(db, minioClient, logger, kafkaIndexProducer, kafkaProcessingProducer)
+	uploadVideoHandler := handlers.NewUploadVideoHandler(db, minioClient, logger, kafkaProducer)
 	getVideoHandler := handlers.NewGetVideoHandler(db, minioClient, logger)
 	getProcessingByVideoIdHandler := handlers.NewGetProcessingByVideoIdHandler(db, logger)
 	getAllProcessingsHandler := handlers.NewGetAllProcessingsHandler(db, logger)
