@@ -181,6 +181,7 @@ class ProposalsPostprocessor(Operator):
     ) -> Dict[str, Any]:
 
 
+
         return {self.__class__.__name__.lower() + '_output': kwargs['proposals']}
 
 
@@ -189,7 +190,7 @@ class CheckerDatabasePostprocessor(Operator):
         self,
         video_id: str,
         start_time: str,
-        proposalspostprocessor_output: str,
+        proposalspostprocessor_output=None,
         **kwargs
     ):
         # fixme генерация интервалов
