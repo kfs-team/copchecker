@@ -114,7 +114,7 @@ func (p *Postgres) GetLastProcessingByVideoId(videoId string, processing *Proces
 }
 
 func (p *Postgres) UpdateIndexVideoByVideoId(videoId string) error {
-	_, err := p.db.NamedExec("UPDATE index_videos SET updated_at = NOW(), added = true WHERE video_id = $1", videoId)
+	_, err := p.db.Exec("UPDATE index_videos SET updated_at = NOW(), added = true WHERE uuid = $1", videoId)
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func (p *Postgres) UpdateIndexVideoByVideoId(videoId string) error {
 }
 
 func (p *Postgres) UpdateVideoByVideoId(videoId string) error {
-	_, err := p.db.NamedExec("UPDATE videos SET updated_at = NOW(), is_processed = true WHERE video_id = $1", videoId)
+	_, err := p.db.Exec("UPDATE videos SET updated_at = NOW(), is_processed = true WHERE video_id = $1", videoId)
 	if err != nil {
 		return err
 	}

@@ -27,14 +27,13 @@ type IndexResultMessage struct {
 	VideoId string `json:"video_id"`
 }
 
-func KafkaProducer(brokers []string, topic string) *kafka.Writer {
-	writer := kafka.NewWriter(kafka.WriterConfig{
-		Brokers:  brokers,
-		Topic:    topic, // Название топика
-		Balancer: &kafka.LeastBytes{},
-	},
-	)
-	return writer
+func KafkaProducer(brokers []string) *kafka.Writer {
+	writer := kafka.Writer{
+		Addr:         kafka.TCP(brokers...),
+		Balancer:     &kafka.LeastBytes{},
+		RequiredAcks: kafka.RequireAll,
+	}
+	return &writer
 }
 
 func KafkaConsumer(brokers []string, topic string) *kafka.Reader {
@@ -63,7 +62,7 @@ func (r *ProcessingResultReader) Start() {
 		case <-r.ctx.Done():
 			return
 		default:
-			msg, err := r.reader.ReadMessage(r.ctx)
+			msg, err := r.reader.FetchMessage(r.ctx)
 			if err != nil {
 				r.logger.Error(err)
 				continue
@@ -83,6 +82,7 @@ func (r *ProcessingResultReader) Start() {
 				continue
 			}
 			r.logger.Info("Processing result message inserted")
+			r.reader.CommitMessages(r.ctx, msg)
 		}
 	}
 }
@@ -104,7 +104,7 @@ func (r *IndexResultReader) Start() {
 		case <-r.ctx.Done():
 			return
 		default:
-			msg, err := r.reader.ReadMessage(r.ctx)
+			msg, err := r.reader.FetchMessage(r.ctx)
 			if err != nil {
 				r.logger.Error(err)
 				continue
@@ -119,6 +119,7 @@ func (r *IndexResultReader) Start() {
 				continue
 			}
 			r.logger.Info("Index video added")
+			r.reader.CommitMessages(r.ctx, msg)
 		}
 	}
 }
