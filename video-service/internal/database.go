@@ -139,7 +139,7 @@ SELECT v.name as name,
 	processing_id,
 	start_at,
 	end_at,
-	intervals,
+	intervals
 	FROM processing
 	left join videos v on processing.video_id = v.video_id
 	`
