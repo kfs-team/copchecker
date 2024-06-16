@@ -49,12 +49,12 @@ class MilvusSearch(Operator):
             )
             reqs = [video_request, audio_request]
 
-            rerank = RRFRanker(k=60)             # fixme
+            rerank = RRFRanker(k=34)             # fixme
             batch_proposals = self.collection.hybrid_search(
                 reqs=reqs,
                 rerank=rerank,
                 limit=20,                       # fixme
-                output_fields=["video_id", "start_time", "end_time"],
+                output_fields=["video_id", "start_time", "end_time", "audio_emb", "video_emb"],
             )
             proposals.extend(batch_proposals)
 
@@ -175,14 +175,67 @@ class PicInPicDetector(Operator):
 class ProposalsPostprocessor(Operator):
     def run(
         self,
-        embedder_output: Dict[str, Any],
+        milvussearch_output,
         picinpicdetector_output: List[Tuple[int, int, List]] = [],
         **kwargs
     ) -> Dict[str, Any]:
 
+        intervals = self.merge_intervals(milvussearch_output)
+        return {self.__class__.__name__.lower() + '_output': intervals}
 
+    def merge_intervals(self, proposals):
+        intervals = []
+        for i in range(len(proposals) - 1):
+            result = self.extract_nearest(proposals[i], proposals[i + 1])
+            if result:
+                rank1, rank2, m1, m2, union_start_time, union_end_time = result
+                intervals.append((rank1, rank2, m1, m2, union_start_time, union_end_time))
 
-        return {self.__class__.__name__.lower() + '_output': kwargs['proposals']}
+        if not intervals:
+            return []
+
+        merged_intervals = []
+        current_interval = intervals[0]
+        for next_interval in intervals[1:]:
+            _, _, m1_curr, m2_curr, start_curr, end_curr = current_interval
+            _, _, m1_next, m2_next, start_next, end_next = next_interval
+
+            if (m1_curr.entity.video_id == m1_next.entity.video_id and
+                    m2_curr.entity.video_id == m2_next.entity.video_id):
+                new_start = min(start_curr, start_next)
+                new_end = max(end_curr, end_next)
+                current_interval = (None, None, m1_curr, m2_curr, new_start, new_end)
+            else:
+                merged_intervals.append((start_curr, end_curr, m1_curr.entity.video_id))
+                current_interval = next_interval
+
+        merged_intervals.append((current_interval[4], current_interval[5], current_interval[2].entity.video_id))
+        filtered_intervals = list(filter(lambda x: x[1] - x[0] > 10, merged_intervals))
+        return filtered_intervals
+
+    @staticmethod
+    def extract_nearest(mout1, mout2):
+        ids1 = {m.entity.video_id for m in mout1}
+        ids2 = {m.entity.video_id for m in mout2}
+        id_intersection = ids1.intersection(ids2)
+        if id_intersection:
+            props = []
+            for rank1, m1 in enumerate(mout1):
+                for rank2, m2 in enumerate(mout2):
+                    if (
+                        m1.entity.video_id == m1.entity.video_id and
+                        not (m1.end_time <= m2.start_time or m2.end_time <= m1.start_time)
+                    ):
+                        union_start_time = min(m1.start_time, m2.start_time)
+                        union_end_time = max(m1.end_time, m2.end_time)
+                        props.append((rank1, rank2, m1, m2, union_start_time, union_end_time))
+            if props:
+                props = sorted(props, key=lambda x: x[:2])
+                return props[0]
+            else:
+                return None
+        else:
+            return None
 
 
 class CheckerDatabasePostprocessor(Operator):
@@ -190,21 +243,18 @@ class CheckerDatabasePostprocessor(Operator):
         self,
         video_id: str,
         start_time: str,
-        proposalspostprocessor_output=None,
+        proposalspostprocessor_output,
         **kwargs
     ):
-        # fixme генерация интервалов
-        import uuid
-        import random
         end_time = self.get_current_utc_time_iso()
         intervals_data = [
             {
-                "index_id": str(uuid.uuid4()),
-                "start": random.randint(1, 1000),
-                "end": random.randint(1, 1000),
+                "index_id": video_id,
+                "start": start,
+                "end": end,
                 "start_time": start_time,
                 "end_time": end_time
-            } for _ in range(random.randint(0, 150))
+            } for start, end, video_id in proposalspostprocessor_output
         ]
 
         data = {
@@ -213,7 +263,7 @@ class CheckerDatabasePostprocessor(Operator):
             "intervals": intervals_data,
         }
 
-        return {self.__class__.__name__.lower() + '_output': data}  # todo
+        return {self.__class__.__name__.lower() + '_output': data}
 
     @staticmethod
     def get_current_utc_time_iso():
