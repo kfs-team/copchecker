@@ -99,7 +99,7 @@ def main_checker(config: Dict[str, Any]) -> None:
             milvus_collection_name=milvus_settings['db_settings']['collection_name']
         ),
         CheckerDatabasePostprocessor(),    # fixme
-        output_field='checkingpostprocessor_output'
+        output_field='checkerdatabasepostprocessor_output'
     )
 
     logger.info("Checking pipeline successfully created")
