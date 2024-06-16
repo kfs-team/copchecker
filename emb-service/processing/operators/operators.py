@@ -57,9 +57,9 @@ class MilvusUpload(Operator):
 
 class Embedder(Operator):
     def __init__(
-            self,
-            audio_encoder: Encoder,
-            video_encoder: Encoder
+        self,
+        audio_encoder: Encoder,
+        video_encoder: Encoder
     ):
         self.audio_encoder = audio_encoder
         self.video_encoder = video_encoder

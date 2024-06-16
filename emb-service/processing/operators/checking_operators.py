@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List, Tuple
 from datetime import datetime, timezone
 
 import numpy as np
@@ -93,6 +93,7 @@ class PicInPicDetector(Operator):
     def run(
         self,
         video_path: str,
+        **kwargs
     ) -> Dict[str, Any]:
         video = VideoFileClip(video_path)
 
@@ -171,11 +172,26 @@ class PicInPicDetector(Operator):
         return {self.__class__.__name__.lower() + '_output': final_results}
 
 
-class CheckerDatabasePostprocessor(Operator):
-    def __init__(self):
-        pass
+class ProposalsPostprocessor(Operator):
+    def run(
+        self,
+        embedder_output: Dict[str, Any],
+        picinpicdetector_output: List[Tuple[int, int, List]] = [],
+        **kwargs
+    ) -> Dict[str, Any]:
 
-    def run(self, video_id: str, start_time: str, **kwargs):
+
+        return {self.__class__.__name__.lower() + '_output': kwargs['proposals']}
+
+
+class CheckerDatabasePostprocessor(Operator):
+    def run(
+        self,
+        video_id: str,
+        start_time: str,
+        proposalspostprocessor_output: str,
+        **kwargs
+    ):
         # fixme генерация интервалов
         import uuid
         import random
@@ -192,7 +208,7 @@ class CheckerDatabasePostprocessor(Operator):
 
         data = {
             "video_id": video_id,
-            "valid": bool(random.randint(0, 2)),  # True если нет заимствований, иначе False
+            "valid": not intervals_data,
             "intervals": intervals_data,
         }
 
