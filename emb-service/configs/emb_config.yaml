@@ -1,5 +1,5 @@
 milvus_settings:
-  host: 'http://192.168.0.110:19530'
+  host: 'milvus-standalone:19530'
   username: ''
   password: ''
 
