@@ -46,7 +46,7 @@ class MilvusSearch(Operator):
             )
             reqs = [video_request, audio_request]
 
-            rerank = RRFRanker(k=5)             # fixme
+            rerank = RRFRanker(k=60)             # fixme
             batch_proposals = self.collection.hybrid_search(
                 reqs=reqs,
                 rerank=rerank,
